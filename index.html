@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>VRD Track</title><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#e8730c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="VRD Track">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f5f7;--card:#fff;--tx:#1b2430;--mu:#6b7684;--ac:#e8730c;--bd:#dde1e7;--ok:#2e9e5b;--ko:#d33}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161b;--card:#1c222a;--tx:#e8ebef;--mu:#98a2ae;--bd:#2c343e}}
+:root[data-theme="dark"]{--bg:#12161b;--card:#1c222a;--tx:#e8ebef;--mu:#98a2ae;--bd:#2c343e}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:70px}
+header{padding:14px 16px;background:var(--ac);color:#fff}
+header input{background:transparent;border:0;color:#fff;font:700 18px inherit;width:100%;outline:0}
+header input::placeholder{color:#ffe3c9}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;padding:14px 4px;border:0;background:none;color:var(--mu);font:600 13px inherit}
+nav button.on{color:var(--ac);box-shadow:inset 0 3px var(--ac)}
+main{padding:12px;max-width:720px;margin:auto}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:var(--tx)}
+.f input,.f select,.f textarea{width:100%;padding:10px;margin:4px 0;border:1px solid var(--bd);border-radius:8px;background:var(--bg)}
+.b{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-weight:600}
+.b2{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--ok)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+.tag{font-size:12px;padding:2px 8px;border-radius:10px;color:#fff;font-weight:600}
+.Ouverte{background:var(--ko)}.Encours{background:var(--ac)}.Levée{background:var(--ok)}.late{background:#7a1fa2}.kpi{text-align:center;padding:10px 4px}.kpi b{display:block;font-size:26px}.hist{font-size:13px;color:var(--mu);margin-top:4px}
+.mu{color:var(--mu);font-size:13px}
+img.p{width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-top:8px}
+.big{font-size:34px;font-weight:800;color:var(--ac)}
+.hide{display:none}.pw{position:relative}.pw img{width:100%;display:block;border-radius:8px;border:1px solid var(--bd)}.pin{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px #0006}.pin.hl{width:30px;height:30px;margin:-15px 0 0 -15px}
+@media print{nav,.noprint,header input{display:none}body{background:#fff;color:#000}.c{break-inside:avoid}header{background:#fff;color:#000}}
+</style></head><body>
+<header><div style="font-weight:800;font-size:12px;letter-spacing:.12em;color:#ffe3c9">🏗️ VRD TRACK</div><input id="pn" placeholder="Nom du projet / chantier" oninput="S.name=this.value;save()"><div class="mu" style="color:#ffe3c9" id="dt"></div></header>
+<main id="v"></main>
+<nav><button data-t="a">Accueil</button><button data-t="r">Réserves</button><button data-t="p">Plans</button><button data-t="n">+ Réserve</button><button data-t="x">Rapport</button></nav>
+<script>
+var S={name:"",lots:[{n:"Terrassement",p:0},{n:"Assainissement",p:0},{n:"Voirie / Chaussée",p:0},{n:"Eau potable",p:0},{n:"Éclairage public",p:0}],res:[]},T="a",filt="Tous",tmpPhotos=[],tmpPin=null,curPlan=null,hl=null,q="";
+try{var r=localStorage.getItem("vrd");if(r)S=JSON.parse(r)}catch(e){}S.plans=S.plans||[];
+function save(){try{localStorage.setItem("vrd",JSON.stringify(S))}catch(e){alert("Stockage plein : supprimez des photos.")}}
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function tot(){return S.lots.length?Math.round(S.lots.reduce(function(a,l){return a+l.p},0)/S.lots.length):0}
+function st(s){return s.replace(" ","")}
+function go(t){T=t;document.querySelectorAll("nav button").forEach(function(b){b.classList.toggle("on",b.dataset.t==t)});draw()}
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){go(b.dataset.t)}});
+function draw(){var h="";$("pn").value=S.name||"";$("dt").textContent=new Date().toLocaleDateString("fr-FR");
+if(T=="a"){var k=kp();h='<div class="row">'+[["Ouvertes",k.o,"var(--ko)"],["En cours",k.e,"var(--ac)"],["Levées",k.l,"var(--ok)"],["En retard",k.r,"#7a1fa2"]].map(function(z){return'<div class="c kpi" style="flex:1"><b style="color:'+z[2]+'">'+z[1]+'</b><span class="mu">'+z[0]+'</span></div>'}).join("")+'</div><div class="c"><div class="mu">Avancement global</div><div class="big">'+tot()+'%</div><div class="bar"><i style="width:'+tot()+'%"></i></div></div>';
+S.lots.forEach(function(l,i){h+='<div class="c"><div class="row"><b>'+esc(l.n)+'</b><span><b>'+l.p+'%</b> <button class="b2" onclick="dl('+i+')">✕</button></span></div><input type="range" min="0" max="100" step="5" value="'+l.p+'" oninput="S.lots['+i+'].p=+this.value;save();this.previousElementSibling.querySelector(\'b:last-of-type\')&&0" onchange="draw()"></div>'});
+h+='<div class="c f"><input id="nl" placeholder="Nouveau lot (ex: Bordures)"><button class="b" onclick="al()">Ajouter le lot</button></div>'}
+if(T=="r"){h='<div class="c row noprint" style="flex-wrap:wrap;justify-content:flex-start">'+["Tous","Ouverte","En cours","Levée","En retard"].map(function(f){return'<button class="'+(f==filt?"b":"b2")+'" onclick="filt=\''+f+'\';draw()">'+f+'</button>'}).join("")+'</div>';
+h+='<div class="c f noprint"><input placeholder="🔍 Rechercher (titre, lieu, entreprise…)" value="'+esc(q)+'" oninput="q=this.value;$(\'rl2\').innerHTML=rlist()"></div><div id="rl2">'+rlist()+'</div>'}
+if(T=="n"){h='<div class="c f"><b>Nouvelle réserve</b><input id="rt" placeholder="Titre (ex: Regard non réglé)"><select id="rl">'+S.lots.map(function(l){return"<option>"+esc(l.n)+"</option>"}).join("")+'</select><input id="rp" placeholder="Localisation (PK, rue, regard…)"><input id="re" placeholder="Entreprise / responsable"><div class="mu">Échéance</div><input id="rf" type="date"><select id="rr"><option>Normale</option><option>Urgente</option><option>Faible</option></select><textarea id="rd" rows="3" placeholder="Description"></textarea>'+(tmpPin?'<div class="mu">📍 Épinglée sur : '+esc(pname(tmpPin.pl))+' <button class="b2" onclick="tmpPin=null;draw()">Retirer</button></div>':'')+'<div class="row"><label class="b2" style="flex:1;text-align:center">📷 Appareil photo<input type="file" accept="image/*" capture="environment" onchange="ph(this)" hidden></label><label class="b2" style="flex:1;text-align:center">🖼️ Galerie<input type="file" accept="image/*" multiple onchange="ph(this)" hidden></label></div><div id="pv"></div><button class="b" style="width:100%;margin-top:10px" onclick="ar()">Enregistrer</button></div>'}
+if(T=="p"){var pl=S.plans.filter(function(p){return p.id==curPlan})[0];if(pl){var rs=S.res.filter(function(x){return x.pl==pl.id});h='<div class="c row noprint"><button class="b2" onclick="curPlan=null;hl=null;draw()">← Plans</button><b>'+esc(pl.n)+'</b></div><div class="mu noprint" style="margin-bottom:6px">Touchez le plan pour épingler une nouvelle réserve.</div><div class="pw"><img src="'+pl.img+'" onclick="pp(event,'+pl.id+')">'+rs.map(function(x){return'<span class="pin '+st(x.s)+(x.id==hl?' hl':'')+'" style="left:'+x.x+'%;top:'+x.y+'%" onclick="event.stopPropagation();hl='+x.id+';draw()"></span>'}).join("")+'</div><div style="margin-top:10px">'+(hl?'<button class="b2 noprint" style="margin-bottom:8px" onclick="hl=null;draw()">Voir toutes</button>':'')+rs.filter(function(x){return!hl||x.id==hl}).map(function(x){return rc(x,1)}).join("")+'</div>'}else{h='<div class="c f"><b>Ajouter un plan</b><input id="pn2" placeholder="Nom du plan (ex: Plan de masse)"><input type="file" accept="image/*" onchange="ap(this)"><div class="mu">Image du plan (JPG/PNG). Pour un PDF, faites une capture ou convertissez la page en image.</div></div>'+(S.plans.length?S.plans.map(function(p){return'<div class="c row"><span onclick="curPlan='+p.id+';draw()" style="flex:1"><b>'+esc(p.n)+'</b><div class="mu">'+S.res.filter(function(x){return x.pl==p.id}).length+' réserve(s)</div></span><button class="b2" onclick="dp('+p.id+')">✕</button></div>'}).join(""):'<p class="mu">Aucun plan.</p>')}}
+if(T=="x"){var o=S.res.filter(function(x){return x.s!="Levée"}).length;h='<div class="c"><h2 style="margin:0">Rapport de suivi</h2><div class="mu">'+esc(S.name||"Projet")+' — '+new Date().toLocaleDateString("fr-FR")+'</div><p>Avancement global : <b>'+tot()+'%</b><br>Réserves : <b>'+S.res.length+'</b> dont <b>'+o+'</b> non levées</p></div><div class="c"><b>Avancement par lot</b>'+S.lots.map(function(l){return'<div class="row" style="margin-top:8px"><span>'+esc(l.n)+'</span><b>'+l.p+'%</b></div><div class="bar"><i style="width:'+l.p+'%"></i></div>'}).join("")+'</div><b>Réserves</b><div style="margin-top:8px">'+S.res.map(function(x){return rc(x,0)}).join("")+'</div><button class="b noprint" style="width:100%" onclick="window.print()">Imprimer / Enregistrer en PDF</button>'}
+$("v").innerHTML=h;if(T=="n")rprev()}
+function rc(x,ed){return'<div class="c"><div class="row"><b>'+(x.n?'#'+x.n+' ':'')+esc(x.t)+'</b><span>'+(late(x)?'<span class="tag late">En retard</span> ':'')+'<span class="tag '+st(x.s)+'">'+x.s+'</span></span></div><div class="mu">'+esc(x.l)+' · '+esc(x.p)+' · '+x.pr+' · '+x.d+'</div>'+(x.e||x.due?'<div class="mu">'+(x.e?'🏢 '+esc(x.e):'')+(x.due?' · ⏰ échéance '+fd(x.due):'')+'</div>':'')+(x.ds?'<div>'+esc(x.ds)+'</div>':'')+phs(x).map(function(s){return'<img class="p" src="'+s+'">'}).join("")+(x.pl!=null&&pname(x.pl)?'<button class="b2 noprint" style="margin-top:8px" onclick="vp('+x.id+')">📍 Voir sur plan</button>':'')+hh(x,ed)+(ed?'<div class="row noprint" style="margin-top:8px"><select onchange="us('+x.id+',this.value)">'+["Ouverte","En cours","Levée"].map(function(s){return"<option"+(s==x.s?" selected":"")+">"+s+"</option>"}).join("")+'</select><button class="b2" onclick="dr('+x.id+')">Supprimer</button></div>':'')+'</div>'}
+function al(){var v=$("nl").value.trim();if(!v)return;S.lots.push({n:v,p:0});save();draw()}
+function dl(i){if(confirm("Supprimer ce lot ?")){S.lots.splice(i,1);save();draw()}}
+function us(id,s){S.res.forEach(function(x){if(x.id==id){x.s=s;lg(x,"Statut → "+s)}});save();draw()}
+function lg(x,t){x.hist=x.hist||[];x.hist.push({d:new Date().toLocaleString("fr-FR"),t:t})}
+function fd(s){return s.split("-").reverse().join("/")}
+function late(x){return x.due&&x.s!="Levée"&&x.due<new Date().toISOString().slice(0,10)}
+function kp(){var c={o:0,e:0,l:0,r:0};S.res.forEach(function(x){if(x.s=="Ouverte")c.o++;else if(x.s=="En cours")c.e++;else c.l++;if(late(x))c.r++});return c}
+function rlist(){var L=S.res.filter(function(x){return(filt=="Tous"||x.s==filt||(filt=="En retard"&&late(x)))&&(!q||(x.t+" "+x.p+" "+(x.e||"")+" "+x.l+" "+(x.ds||"")).toLowerCase().indexOf(q.toLowerCase())>-1)});return L.length?L.map(function(x){return rc(x,1)}).join(""):'<p class="mu">Aucune réserve.</p>'}
+function hh(x,ed){var h=(x.pa?'<div class="mu" style="margin-top:8px">Photo après traitement</div><img class="p" src="'+x.pa+'">':'')+(x.hist||[]).map(function(e){return'<div class="hist">• '+esc(e.d)+' — '+esc(e.t)+'</div>'}).join("");if(ed)h+='<div class="row noprint" style="margin-top:8px"><input style="flex:1;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg)" placeholder="Ajouter un commentaire"><button class="b2" onclick="ac('+x.id+',this.previousElementSibling.value)">💬</button><label class="b2">📷 Après<input type="file" accept="image/*" capture="environment" hidden onchange="pa('+x.id+',this)"></label></div>';return h}
+function ac(id,v){v=v.trim();if(!v)return;S.res.forEach(function(x){if(x.id==id)lg(x,"💬 "+v)});save();draw()}
+function pa(id,inp){var f=inp.files[0];if(!f)return;cmp(f,800,.6,function(d){S.res.forEach(function(x){if(x.id==id){x.pa=d;lg(x,"📷 Photo après ajoutée")}});save();draw()})}
+function dr(id){if(confirm("Supprimer cette réserve ?")){S.res=S.res.filter(function(x){return x.id!=id});save();draw()}}
+function cmp(f,m,q,cb){var im=new Image();im.onload=function(){var c=document.createElement("canvas"),k=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",q))};im.src=URL.createObjectURL(f)}
+function ph(inp){Array.prototype.forEach.call(inp.files,function(f){cmp(f,800,.6,function(d){tmpPhotos.push(d);rprev()})});inp.value=""}
+function rprev(){var e=$("pv");if(e)e.innerHTML=tmpPhotos.map(function(s,i){return'<div style="position:relative"><img class="p" src="'+s+'"><button class="b2" style="position:absolute;top:14px;right:6px" onclick="tmpPhotos.splice('+i+',1);rprev()">✕</button></div>'}).join("")}
+function phs(x){return x.phs||(x.ph?[x.ph]:[])}
+function pname(id){var p=S.plans.filter(function(p){return p.id==id})[0];return p?p.n:""}
+function ap(inp){var f=inp.files[0];if(!f)return;cmp(f,1600,.7,function(d){S.plans.push({id:Date.now(),n:$("pn2").value.trim()||f.name,img:d});save();draw()})}
+function dp(id){if(confirm("Supprimer ce plan ?")){S.plans=S.plans.filter(function(p){return p.id!=id});S.res.forEach(function(x){if(x.pl==id){x.pl=null}});save();draw()}}
+function pp(e,id){var r=e.target.getBoundingClientRect();tmpPin={pl:id,x:+((e.clientX-r.left)/r.width*100).toFixed(1),y:+((e.clientY-r.top)/r.height*100).toFixed(1)};go("n")}
+function vp(id){var x=S.res.filter(function(r){return r.id==id})[0];curPlan=x.pl;hl=id;go("p")}
+function ar(){var t=$("rt").value.trim();if(!t){alert("Titre obligatoire");return}S.res.unshift({id:Date.now(),t:t,l:$("rl").value,p:$("rp").value,pr:$("rr").value,ds:$("rd").value,phs:tmpPhotos,pl:tmpPin?tmpPin.pl:null,x:tmpPin?tmpPin.x:null,y:tmpPin?tmpPin.y:null,s:"Ouverte",e:$("re").value,due:$("rf").value,n:Math.max.apply(null,[0].concat(S.res.map(function(r){return r.n||0})))+1,hist:[],d:new Date().toLocaleDateString("fr-FR")});tmpPhotos=[];tmpPin=null;save();go("r")}
+go("a");
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+</script></body></html>
